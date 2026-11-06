@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from invoice_schema import Invoice
 
 load_dotenv()
 client = genai.Client(
@@ -18,6 +19,10 @@ image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/png")
 
 response = client.models.generate_content(
     model="gemini-3.5-flash-lite",
-    contents=[image_part, "What is the invoice number, the VAT amount and the total on this invoice?"],
+    contents=[image_part, "Extract the invoice details from this image."],
+    config=types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=Invoice,
+    ),
 )
 print(response.text)
