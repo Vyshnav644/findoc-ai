@@ -25,4 +25,9 @@ response = client.models.generate_content(
         response_schema=Invoice,
     ),
 )
-print(response.text)
+invoice = response.parsed
+if invoice is None:
+    raise ValueError("Gemini's reply did not match the Invoice form")
+print(type(invoice))
+print(invoice)
+print("Subtotal + VAT =", invoice.subtotal + invoice.vat_amount)
