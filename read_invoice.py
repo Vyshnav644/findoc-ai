@@ -35,4 +35,10 @@ if difference < 0.01:
     print("PASS: subtotal + VAT matches total")
 else:
     print("FAIL: subtotal + VAT does not match total, off by", difference)
+expected_vat = invoice.subtotal * 0.05
+vat_difference = abs(invoice.vat_amount - expected_vat)
+if vat_difference < 0.01:
+    print("PASS: VAT is 5% of subtotal")
+else:
+    print("FAIL: VAT is not 5% of subtotal, off by", vat_difference)
 
