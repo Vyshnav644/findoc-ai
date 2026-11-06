@@ -30,4 +30,9 @@ if invoice is None:
     raise ValueError("Gemini's reply did not match the Invoice form")
 print(type(invoice))
 print(invoice)
-print("Subtotal + VAT =", invoice.subtotal + invoice.vat_amount)
+difference = abs(invoice.subtotal + invoice.vat_amount - invoice.total)
+if difference < 0.01:
+    print("PASS: subtotal + VAT matches total")
+else:
+    print("FAIL: subtotal + VAT does not match total, off by", difference)
+
