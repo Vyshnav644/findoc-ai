@@ -9,3 +9,7 @@ CREATE TABLE invoices (
     total NUMERIC(12, 2) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Block duplicate invoices: same supplier (any capitalization) + same invoice number
+CREATE UNIQUE INDEX invoices_vendor_number_unique
+ON invoices (lower(vendor_name), invoice_number);

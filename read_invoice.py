@@ -1,4 +1,5 @@
 import os
+import psycopg
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -6,6 +7,9 @@ from invoice_schema import Invoice
 
 load_dotenv()
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    raise ValueError("DATABASE_URL is missing from .env")
 print("Using model:", MODEL_NAME)
 client = genai.Client(
     http_options=types.HttpOptions(
@@ -76,3 +80,19 @@ for field in Invoice.model_fields:
         print("FAIL:", field, "| got", got, "| expected", want)
 
 print("Accuracy:", correct, "out of", len(Invoice.model_fields))
+with psycopg.connect(DATABASE_URL) as conn:
+    row = conn.execute(
+        "INSERT INTO invoices "
+        "(vendor_name, invoice_number, invoice_date, subtotal, vat_amount, total) "
+        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+        (
+            invoice.vendor_name,
+            invoice.invoice_number,
+            invoice.invoice_date,
+            invoice.subtotal,
+            invoice.vat_amount,
+            invoice.total,
+        ),
+    ).fetchone()
+
+print("Saved to database with id:", row[0])
