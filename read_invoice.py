@@ -10,6 +10,7 @@ client = genai.Client(
         retry_options=types.HttpRetryOptions(attempts=1),
     )
 )
+
 with open("samples/sample_invoice_01.png", "rb") as f:
     image_bytes = f.read()
 
@@ -25,16 +26,21 @@ response = client.models.generate_content(
         response_schema=Invoice,
     ),
 )
+
 invoice = response.parsed
 if invoice is None:
     raise ValueError("Gemini's reply did not match the Invoice form")
 print(type(invoice))
 print(invoice)
+
+# Check 1: subtotal + VAT should equal total
 difference = abs(invoice.subtotal + invoice.vat_amount - invoice.total)
 if difference < 0.01:
     print("PASS: subtotal + VAT matches total")
 else:
     print("FAIL: subtotal + VAT does not match total, off by", difference)
+
+# Check 2: VAT should be 5% of subtotal
 expected_vat = invoice.subtotal * 0.05
 vat_difference = abs(invoice.vat_amount - expected_vat)
 if vat_difference < 0.01:
@@ -42,3 +48,28 @@ if vat_difference < 0.01:
 else:
     print("FAIL: VAT is not 5% of subtotal, off by", vat_difference)
 
+# ----- NEW PART: accuracy against known answers -----
+
+expected = Invoice(
+    vendor_name="Example Supplies LLC",
+    invoice_number="INV-2026-0147",
+    invoice_date="2026-03-15",
+    subtotal=2535.00,
+    vat_amount=126.75,
+    total=2661.75,
+)
+
+correct = 0
+for field in Invoice.model_fields:
+    got = getattr(invoice, field)
+    want = getattr(expected, field)
+    if isinstance(got, str):
+        got = got.lower().strip()
+        want = want.lower().strip()
+    if got == want:
+        correct = correct + 1
+        print("PASS:", field)
+    else:
+        print("FAIL:", field, "| got", got, "| expected", want)
+
+print("Accuracy:", correct, "out of", len(Invoice.model_fields))
