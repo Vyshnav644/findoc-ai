@@ -1,9 +1,12 @@
+import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from invoice_schema import Invoice
 
 load_dotenv()
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+print("Using model:", MODEL_NAME)
 client = genai.Client(
     http_options=types.HttpOptions(
         timeout=30_000,
@@ -19,7 +22,7 @@ print("Image loaded, size in bytes:", len(image_bytes))
 image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/png")
 
 response = client.models.generate_content(
-    model="gemini-3.5-flash-lite",
+    model=MODEL_NAME,
     contents=[image_part, "Extract the invoice details from this image."],
     config=types.GenerateContentConfig(
         response_mime_type="application/json",
