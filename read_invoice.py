@@ -80,19 +80,22 @@ for field in Invoice.model_fields:
         print("FAIL:", field, "| got", got, "| expected", want)
 
 print("Accuracy:", correct, "out of", len(Invoice.model_fields))
-with psycopg.connect(DATABASE_URL) as conn:
-    row = conn.execute(
-        "INSERT INTO invoices "
-        "(vendor_name, invoice_number, invoice_date, subtotal, vat_amount, total) "
-        "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-        (
-            invoice.vendor_name,
-            invoice.invoice_number,
-            invoice.invoice_date,
-            invoice.subtotal,
-            invoice.vat_amount,
-            invoice.total,
-        ),
-    ).fetchone()
+try:
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute(
+            "INSERT INTO invoices "
+            "(vendor_name, invoice_number, invoice_date, subtotal, vat_amount, total) "
+            "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (
+                invoice.vendor_name,
+                invoice.invoice_number,
+                invoice.invoice_date,
+                invoice.subtotal,
+                invoice.vat_amount,
+                invoice.total,
+            ),
+        ).fetchone()
 
-print("Saved to database with id:", row[0])
+    print("Saved to database with id:", row[0])
+except psycopg.errors.UniqueViolation:
+    print("Already saved: this invoice is in the database, skipped.")
