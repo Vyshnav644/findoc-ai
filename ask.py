@@ -1,6 +1,7 @@
+import os
 import re
 import psycopg
-import os
+from google.genai import errors
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -11,6 +12,7 @@ MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL is None:
     raise ValueError("DATABASE_URL is missing from .env")
+
 client = genai.Client(
     http_options=types.HttpOptions(
         timeout=30_000,
@@ -23,7 +25,15 @@ with open("sql/schema.sql") as f:
 
 
 class SqlQuery(BaseModel):
-    sql: str = Field(description="One PostgreSQL SELECT query that answers the question")
+    sql: str | None = Field(
+        default=None,
+        description="One PostgreSQL SELECT query on the invoices table, or null if you cannot write one",
+    )
+    message: str | None = Field(
+        default=None,
+        description="Only if sql is null: a short message for the user, either a clarifying question or why the invoice data cannot answer",
+    )
+
 
 def is_safe_sql(sql):
     cleaned = sql.strip().rstrip(";").lower()
@@ -36,47 +46,74 @@ def is_safe_sql(sql):
             return False
     return True
 
-question = "How much VAT did we pay in March 2026?"
 
-prompt = f"""You write PostgreSQL queries for an invoice database.
+while True:
+    question = input("Ask a question (or type exit): ")
+    if question.lower() == "exit":
+        break
+
+    prompt = f"""You write PostgreSQL queries for an invoice database.
 
 Database schema:
 {schema}
 
+Rules:
+- Only answer from the invoices table. Never write facts or answers as text inside the SQL.
+- If the question is not about the invoice data (for example VAT laws or rules), set sql to null and explain in message that the invoice database cannot answer it.
+- If the question mentions a month or period but no year, set sql to null and ask which year in message.
+
 Write one SELECT query that answers this question:
 {question}"""
 
-response = client.models.generate_content(
-    model=MODEL_NAME,
-    contents=prompt,
-    config=types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=SqlQuery,
-    ),
-)
+    try:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SqlQuery,
+            ),
+        )
+    except errors.ServerError:
+        print("Gemini is busy right now, please try again.")
+        print()
+        continue
 
-result = response.parsed
-if result is None:
-    raise ValueError("Gemini did not return a query")
+    result = response.parsed
+    if result is None:
+        print("Gemini did not return a query. Try rephrasing.")
+        continue
 
-print("Question:", question)
-print("SQL:", result.sql)
-if not is_safe_sql(result.sql):
-    raise ValueError("Blocked: the generated SQL is not a read-only query")
-with psycopg.connect(DATABASE_URL) as conn:
-    conn.read_only = True
-    rows = conn.execute(result.sql).fetchall()
+    
+    if result.sql is None:
+        print("FinDoc:", result.message)
+        print()
+        continue
+    print("SQL:", result.sql)
+    if not is_safe_sql(result.sql):
+        print("Blocked: that question would need a query that changes data.")
+        continue
 
-print("Result:", rows)
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.read_only = True
+        rows = conn.execute(result.sql).fetchall()
 
-answer_prompt = f"""Question: {question}
+    print("Result:", rows)
+
+    answer_prompt = f"""Question: {question}
 Database result rows: {rows}
 
 Answer the question in one short sentence for an accountant.
 Use the exact numbers from the result. Amounts are in AED."""
 
-answer = client.models.generate_content(
-    model=MODEL_NAME,
-    contents=answer_prompt,
-)
-print("Answer:", answer.text)
+    try:
+        answer = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=answer_prompt,
+        )
+    except errors.ServerError:
+        print("Gemini is busy right now, please try again.")
+        print()
+        continue
+    print("Answer:", answer.text)
+    print()
