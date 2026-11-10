@@ -68,3 +68,15 @@ with psycopg.connect(DATABASE_URL) as conn:
     rows = conn.execute(result.sql).fetchall()
 
 print("Result:", rows)
+
+answer_prompt = f"""Question: {question}
+Database result rows: {rows}
+
+Answer the question in one short sentence for an accountant.
+Use the exact numbers from the result. Amounts are in AED."""
+
+answer = client.models.generate_content(
+    model=MODEL_NAME,
+    contents=answer_prompt,
+)
+print("Answer:", answer.text)
