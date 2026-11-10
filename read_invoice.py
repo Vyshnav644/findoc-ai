@@ -1,22 +1,13 @@
-import os
 import psycopg
-from dotenv import load_dotenv
-from google import genai
 from google.genai import types
 from invoice_schema import Invoice
 
-load_dotenv()
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL is None:
-    raise ValueError("DATABASE_URL is missing from .env")
+from config import MODEL_NAME, DATABASE_URL
+from llm import client
+
 print("Using model:", MODEL_NAME)
-client = genai.Client(
-    http_options=types.HttpOptions(
-        timeout=30_000,
-        retry_options=types.HttpRetryOptions(attempts=1),
-    )
-)
+
+# ----- 1. Load the invoice image -----
 
 with open("samples/sample_invoice_01.png", "rb") as f:
     image_bytes = f.read()
@@ -24,6 +15,8 @@ with open("samples/sample_invoice_01.png", "rb") as f:
 print("Image loaded, size in bytes:", len(image_bytes))
 
 image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/png")
+
+# ----- 2. Ask Gemini to fill in the Invoice form -----
 
 response = client.models.generate_content(
     model=MODEL_NAME,
@@ -37,17 +30,16 @@ response = client.models.generate_content(
 invoice = response.parsed
 if invoice is None:
     raise ValueError("Gemini's reply did not match the Invoice form")
-print(type(invoice))
 print(invoice)
 
-# Check 1: subtotal + VAT should equal total
+# ----- 3. Consistency checks (work on any invoice) -----
+
 difference = abs(invoice.subtotal + invoice.vat_amount - invoice.total)
 if difference < 0.01:
     print("PASS: subtotal + VAT matches total")
 else:
     print("FAIL: subtotal + VAT does not match total, off by", difference)
 
-# Check 2: VAT should be 5% of subtotal
 expected_vat = invoice.subtotal * 0.05
 vat_difference = abs(invoice.vat_amount - expected_vat)
 if vat_difference < 0.01:
@@ -55,7 +47,7 @@ if vat_difference < 0.01:
 else:
     print("FAIL: VAT is not 5% of subtotal, off by", vat_difference)
 
-# ----- NEW PART: accuracy against known answers -----
+# ----- 4. Accuracy against known answers (sample invoice only) -----
 
 expected = Invoice(
     vendor_name="Example Supplies LLC",
@@ -80,6 +72,9 @@ for field in Invoice.model_fields:
         print("FAIL:", field, "| got", got, "| expected", want)
 
 print("Accuracy:", correct, "out of", len(Invoice.model_fields))
+
+# ----- 5. Save to PostgreSQL (skip if already saved) -----
+
 try:
     with psycopg.connect(DATABASE_URL) as conn:
         row = conn.execute(
@@ -95,7 +90,6 @@ try:
                 invoice.total,
             ),
         ).fetchone()
-
     print("Saved to database with id:", row[0])
 except psycopg.errors.UniqueViolation:
     print("Already saved: this invoice is in the database, skipped.")

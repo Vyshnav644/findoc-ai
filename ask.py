@@ -1,24 +1,10 @@
-import os
 import re
 import psycopg
-from google.genai import errors
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from google.genai import types, errors
 from pydantic import BaseModel, Field
 
-load_dotenv()
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL is None:
-    raise ValueError("DATABASE_URL is missing from .env")
-
-client = genai.Client(
-    http_options=types.HttpOptions(
-        timeout=30_000,
-        retry_options=types.HttpRetryOptions(attempts=1),
-    )
-)
+from config import MODEL_NAME, DATABASE_URL
+from llm import client
 
 with open("sql/schema.sql") as f:
     schema = f.read()
@@ -84,12 +70,13 @@ Write one SELECT query that answers this question:
         print("Gemini did not return a query. Try rephrasing.")
         continue
 
-    
     if result.sql is None:
         print("FinDoc:", result.message)
         print()
         continue
+
     print("SQL:", result.sql)
+
     if not is_safe_sql(result.sql):
         print("Blocked: that question would need a query that changes data.")
         continue
