@@ -1,4 +1,5 @@
 import re
+import psycopg
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -7,6 +8,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    raise ValueError("DATABASE_URL is missing from .env")
 client = genai.Client(
     http_options=types.HttpOptions(
         timeout=30_000,
@@ -57,9 +61,10 @@ if result is None:
 
 print("Question:", question)
 print("SQL:", result.sql)
+if not is_safe_sql(result.sql):
+    raise ValueError("Blocked: the generated SQL is not a read-only query")
+with psycopg.connect(DATABASE_URL) as conn:
+    conn.read_only = True
+    rows = conn.execute(result.sql).fetchall()
 
-print("Gemini's query:", is_safe_sql(result.sql))
-print("DROP TABLE:", is_safe_sql("DROP TABLE invoices"))
-print("Hidden DELETE:", is_safe_sql("SELECT * FROM invoices; DELETE FROM invoices"))
-print("created_at:", is_safe_sql("SELECT created_at FROM invoices"))
-print("Update Traders:", is_safe_sql("SELECT * FROM invoices WHERE vendor_name = 'Update Traders'"))
+print("Result:", rows)
