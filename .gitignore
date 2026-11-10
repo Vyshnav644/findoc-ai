@@ -3,3 +3,4 @@ __pycache__/
 .env
 scratch/
 private_invoices/
+knowledge/*.pdf
