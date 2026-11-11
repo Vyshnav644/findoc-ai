@@ -12,7 +12,8 @@ UAE businesses reclaim input VAT from their supplier invoices in every VAT retur
 - **Consistency checks:** flags an invoice if subtotal + VAT does not equal the total, or if VAT is not 5% of the subtotal
 - **Evaluation:** compares each extracted field against known answers; currently 6/6 fields correct on the sample invoice
 - **Configurable model:** the Gemini model is a setting (`GEMINI_MODEL`), so switching models needs no code change
-
+- **VAT rule answers (RAG):** searches the FTA Taxable Person Guide by meaning and answers with section and page citations, or says when the guide doesn't cover a question
+- **One assistant:** a router sends each question to invoice SQL, the VAT guide, or a polite "out of scope"
 ## How to run
 
 ```
@@ -33,8 +34,8 @@ The sample invoice in `samples/` is fictional and made for testing.
 
 - [x] Read invoice images with a vision LLM
 - [x] Validate extracted data and measure accuracy
-- [ ] Save invoices to PostgreSQL
-- [ ] Ask questions in plain English (text-to-SQL)
-- [ ] Answer VAT rule questions with RAG over FTA guides
+- [x] Save invoices to PostgreSQL
+- [x] Ask questions in plain English (text-to-SQL)
+- [x] Answer VAT rule questions with RAG over FTA guides
 - [ ] LangGraph agent, FastAPI and Docker
 - [ ] Deploy to the cloud, with CI and evaluation scores
