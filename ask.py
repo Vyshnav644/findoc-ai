@@ -1,3 +1,5 @@
+from router import route_question
+from rag import answer_from_guide, GUIDE_NAME
 import re
 import psycopg
 from google.genai import types, errors
@@ -37,6 +39,31 @@ while True:
     question = input("Ask a question (or type exit): ")
     if question.lower() == "exit":
         break
+
+    try:
+        destination = route_question(question)
+    except errors.ServerError:
+        print("Gemini is busy right now, please try again.")
+        print()
+        continue
+
+    if destination == "other":
+        print("FinDoc: I can answer questions about your invoices or about UAE VAT rules.")
+        print()
+        continue
+
+    if destination == "vat_rules":
+        try:
+            answer, results = answer_from_guide(question)
+        except errors.ServerError:
+            print("Gemini is busy right now, please try again.")
+            print()
+            continue
+        print("Answer:", answer)
+        print("Searched:", ", ".join(chunk["section"] for score, chunk in results))
+        print(f"Source: {GUIDE_NAME}. Rules may have changed since this guide was issued.")
+        print()
+        continue
 
     prompt = f"""You write PostgreSQL queries for an invoice database.
 
