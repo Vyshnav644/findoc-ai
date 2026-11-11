@@ -46,9 +46,34 @@ for number, text in pages:
         elif current is not None:
             current["lines"].append(line)
 
-print("Sections:", len(sections))
-
+chunks = []
 for s in sections:
-    if s["section"] == "10.6.3":
-        print(s["section"], s["title"], "page", s["page"])
-        print(" ".join(s["lines"]))            
+    body = " ".join(s["lines"]).strip()
+    if not body:
+        continue
+    chunks.append({
+        "section": s["section"],
+        "title": s["title"],
+        "page": s["page"],
+        "text": f'{s["section"]} {s["title"]}\n{body}',
+    })
+
+print("Sections:", len(sections))
+print("Chunks with text:", len(chunks))
+
+sizes = [len(c["text"].split()) for c in chunks]
+print("Smallest:", min(sizes), "words")
+print("Largest:", max(sizes), "words")
+print("Average:", sum(sizes) // len(sizes), "words")
+print()
+print("Chunks over 500 words:")
+for c in chunks:
+    words = len(c["text"].split())
+    if words > 500:
+        print(c["section"], c["title"], words)
+print()
+print("Chunks fewer than 40 words:")
+for c in chunks:
+    words = len(c["text"].split())
+    if words < 40:
+        print(c["section"], c["title"], words)
