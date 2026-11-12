@@ -1,5 +1,5 @@
 import os
-
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, MessagesState, START, END
@@ -50,7 +50,7 @@ graph.add_node("tools", call_tools)
 graph.add_edge(START, "agent")
 graph.add_conditional_edges("agent", should_continue, ["tools", END])
 graph.add_edge("tools", "agent")
-app = graph.compile()
+app = graph.compile(checkpointer=MemorySaver())
 
 def message_text(message):
     if isinstance(message.content, str):
@@ -59,6 +59,19 @@ def message_text(message):
 
 
 if __name__ == "__main__":
-    question = input("Ask FinDoc: ")
-    result = app.invoke({"messages": [HumanMessage(content=question)]})
-    print(message_text(result["messages"][-1]))
+    chat = {"configurable": {"thread_id": "accountant-1"}}
+
+    while True:
+        question = input("You: ")
+        if question.lower() == "exit":
+            break
+
+        try:
+            result = app.invoke({"messages": [HumanMessage(content=question)]}, chat)
+        except Exception as error:
+            print("FinDoc: something went wrong (", type(error).__name__, "), please try again.")
+            print()
+            continue
+
+        print("FinDoc:", message_text(result["messages"][-1]))
+        print()
