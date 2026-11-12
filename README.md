@@ -13,7 +13,7 @@ UAE businesses reclaim input VAT from their supplier invoices in every VAT retur
 - **Evaluation:** compares each extracted field against known answers; currently 6/6 fields correct on the sample invoice
 - **Configurable model:** the Gemini model is a setting (`GEMINI_MODEL`), so switching models needs no code change
 - **VAT rule answers (RAG):** searches the FTA Taxable Person Guide by meaning and answers with section and page citations, or says when the guide doesn't cover a question
-- **One assistant:** a router sends each question to invoice SQL, the VAT guide, or a polite "out of scope"
+- **Agent with memory:** a LangGraph ReAct agent chooses between the invoice database and the VAT guide, uses both when a question needs both, and remembers the conversation, so follow-ups like "And in April?" work
 ## How to run
 
 ```
@@ -23,7 +23,9 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
-python read_invoice.py
+python read_invoice.py    # read the sample invoice into the database
+python embed_guide.py     # one-off: build the VAT guide search index
+python agent.py           # chat with FinDoc AI
 ```
 
 Then put your own Gemini API key in `.env` (get one free at Google AI Studio).
@@ -37,5 +39,5 @@ The sample invoice in `samples/` is fictional and made for testing.
 - [x] Save invoices to PostgreSQL
 - [x] Ask questions in plain English (text-to-SQL)
 - [x] Answer VAT rule questions with RAG over FTA guides
-- [ ] LangGraph agent, FastAPI and Docker
+- [x] LangGraph agent, FastAPI and Docker
 - [ ] Deploy to the cloud, with CI and evaluation scores
