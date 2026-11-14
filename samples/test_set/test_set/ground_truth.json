@@ -1,0 +1,82 @@
+{
+  "invoice_02_banner_layout.png": {
+    "vendor_name": "Desert Rose Trading LLC",
+    "invoice_number": "DRT-5521",
+    "subtotal": 1321.0,
+    "vat_amount": 66.05,
+    "total": 1387.05,
+    "currency": "AED",
+    "invoice_date": "2026-04-22",
+    "tests": "A different layout: details in a coloured banner at the top."
+  },
+  "invoice_03_phone_photo.jpg": {
+    "vendor_name": "Gulf Stationery House",
+    "invoice_number": "GSH/26/0089",
+    "subtotal": 504.0,
+    "vat_amount": 25.2,
+    "total": 529.2,
+    "currency": "AED",
+    "invoice_date": "2026-05-07",
+    "tests": "A phone-style photo: tilted, slightly blurred, uneven lighting, JPEG."
+  },
+  "invoice_04_wrong_vat.png": {
+    "vendor_name": "Al Noor Office Supplies",
+    "invoice_number": "ANO-3307",
+    "subtotal": 2000.0,
+    "vat_amount": 140.0,
+    "total": 2140.0,
+    "currency": "AED",
+    "invoice_date": "2026-04-14",
+    "tests": "VAT is wrong on purpose: 140.00 instead of 5% (100.00). The checks should flag it."
+  },
+  "invoice_05_usd.png": {
+    "vendor_name": "Bluewave Software Inc.",
+    "invoice_number": "BW-INV-1188",
+    "subtotal": 1500.0,
+    "vat_amount": 75.0,
+    "total": 1575.0,
+    "currency": "USD",
+    "invoice_date": "2026-06-02",
+    "tests": "Amounts are in USD, not AED. Our form has no currency field yet."
+  },
+  "invoice_06_many_items_discount.png": {
+    "vendor_name": "Emirates Pantry Co.",
+    "invoice_number": "EPC-77412",
+    "subtotal": 867.0,
+    "vat_amount": 43.35,
+    "total": 910.35,
+    "currency": "AED",
+    "invoice_date": "2026-05-19",
+    "tests": "Nine lines including a negative discount line."
+  },
+  "invoice_07_receipt_ddmm_date.png": {
+    "vendor_name": "Corner Cafe LLC",
+    "invoice_number": "CC-004512",
+    "subtotal": 104.0,
+    "vat_amount": 5.2,
+    "total": 109.2,
+    "currency": "AED",
+    "invoice_date": "2026-04-03",
+    "tests": "Narrow till receipt; date written 03/04/2026, which in the UAE means 3 April (not 4 March)."
+  },
+  "invoice_08_total_mismatch.png": {
+    "vendor_name": "Marina Print Services",
+    "invoice_number": "MPS-2209",
+    "subtotal": 730.0,
+    "vat_amount": 36.5,
+    "total": 815.0,
+    "currency": "AED",
+    "invoice_date": "2026-05-28",
+    "tests": "The printed total (815.00) does not equal subtotal + VAT (766.50). The checks should flag it."
+  },
+  "invoice_09_very_blurry.jpg": {
+    "vendor_name": "Oasis Cleaning Supplies",
+    "invoice_number": "OCS-1450",
+    "subtotal": 427.0,
+    "vat_amount": 21.35,
+    "total": 448.35,
+    "currency": "AED",
+    "invoice_date": "2026-06-11",
+    "tests": "Very blurry and low resolution. Probably unreadable: what does the system do?"
+  }
+}
