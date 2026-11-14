@@ -1,3 +1,8 @@
+import psycopg
+from fastapi import UploadFile
+
+from invoice_pipeline import extract_invoice, check_invoice, save_invoice
+from invoice_schema import Invoice
 from fastapi import FastAPI, HTTPException
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
@@ -44,3 +49,35 @@ def ask(request: AskRequest):
             tools_used.append(call["name"])
 
     return AskResponse(answer=message_text(result["messages"][-1]), tools_used=tools_used)
+
+class InvoiceResponse(BaseModel):
+    status: str
+    invoice_id: int | None
+    invoice: Invoice
+    problems: list[str]
+
+
+ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp"}
+
+@api.post("/invoices", response_model=InvoiceResponse)
+def upload_invoice(file: UploadFile):
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=415, detail="Please upload a PNG, JPEG or WebP image")
+
+    image_bytes = file.file.read()
+
+    try:
+        invoice = extract_invoice(image_bytes, file.content_type)
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Could not read the invoice ({type(error).__name__})")
+
+    problems = check_invoice(invoice)
+
+    try:
+        invoice_id = save_invoice(invoice)
+        status = "saved"
+    except psycopg.errors.UniqueViolation:
+        invoice_id = None
+        status = "duplicate"
+
+    return InvoiceResponse(status=status, invoice_id=invoice_id, invoice=invoice, problems=problems)
