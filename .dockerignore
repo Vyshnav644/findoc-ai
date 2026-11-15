@@ -7,3 +7,4 @@ private_invoices/
 knowledge/*.pdf
 samples/
 .env.docker
+backups/
