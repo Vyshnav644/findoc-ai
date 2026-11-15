@@ -5,3 +5,4 @@ scratch/
 private_invoices/
 knowledge/*.pdf
 knowledge/*.json
+.env.docker
